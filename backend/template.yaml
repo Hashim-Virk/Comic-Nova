@@ -1,0 +1,92 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ComicNova Backend
+  AWS Builder Challenge - An AI Comic Book & Story Generator using Amazon Bedrock Nova, Lambda, S3, and DynamoDB.
+
+Resources:
+  # DynamoDB Table to store comic metadata and S3 URLs
+  ComicsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: id
+        Type: String
+
+  # S3 Bucket to store generated comic images
+  ComicsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "comic-nova-images-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: ['GET', 'PUT', 'POST']
+            AllowedOrigins: ['*']
+            MaxAge: 3600
+
+  # S3 Bucket Policy to allow reading objects (for serving images)
+  ComicsBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ComicsBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub 'arn:aws:s3:::${ComicsBucket}/*'
+
+  # Lambda function that acts as the backend API
+  ComicGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.lambda_handler
+      Runtime: python3.13
+      Timeout: 120
+      MemorySize: 256
+      FunctionUrlConfig:
+        AuthType: NONE
+        Cors:
+          AllowOrigins:
+            - '*'
+          AllowMethods:
+            - '*'
+          AllowHeaders:
+            - Content-Type
+      Environment:
+        Variables:
+          S3_BUCKET_NAME: !Ref ComicsBucket
+          DYNAMODB_TABLE_NAME: !Ref ComicsTable
+      Policies:
+        # Permission to write to the S3 bucket
+        - S3CrudPolicy:
+            BucketName: !Ref ComicsBucket
+        # Permission to CRUD items in the DynamoDB table
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ComicsTable
+        # Permission to invoke Bedrock models (Nova Canvas and Nova Lite/Micro)
+        - Statement:
+            - Effect: Allow
+              Action:
+                - bedrock:InvokeModel
+              Resource: "*"
+
+Outputs:
+  BackendFunctionUrl:
+    Description: "Public URL for ComicNova Lambda function"
+    Value: !GetAtt ComicGeneratorFunctionUrl.FunctionUrl
+  ComicsTableName:
+    Description: "DynamoDB Table Name"
+    Value: !Ref ComicsTable
+  ComicsBucketName:
+    Description: "S3 Bucket Name"
+    Value: !Ref ComicsBucket

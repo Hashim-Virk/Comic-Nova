@@ -1,0 +1,9 @@
+backend/.aws-sam/
+frontend/node_modules/
+frontend/dist/
+__pycache__/
+*.pyc
+output.json
+response.json
+.env
+.DS_Store
