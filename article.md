@@ -1,62 +1,87 @@
-# ComicNova: Building an AI Comic Book Generator with AWS Serverless and Bedrock
+# Weekend Creative Challenge: ComicNova - AI Comic & Visual Story Generator
 
-Welcome to **ComicNova**, a serverless web application that turns any creative story idea into a custom 3-panel visual comic strip! Built as a submission for the AWS Build a Creative App Weekend Challenge, this project highlights how developers can leverage AWS serverless technologies—including AWS Lambda, Amazon Bedrock, Amazon S3, and Amazon DynamoDB—to build high-performance, cost-effective, and highly engaging creative applications.
-
----
-
-## 💡 The Inspiration
-
-Visual storytelling is one of the oldest forms of human communication, but creating comics requires drawing skills, layout design, and narrative scripting. **ComicNova** democratizes this art form. By simply typing a premise (e.g., *"A brave mouse finds a glowing magical golden cheese in a castle basement"*), users receive a complete comic page featuring:
-1. A custom, catchy title.
-2. A 3-panel narrative script with character dialogues.
-3. Custom-generated illustrations matching their chosen artistic style (e.g., Chibi Anime, Superhero Comic, Neon Cyberpunk, or Watercolor).
-4. A public gallery to save and share their creations with the world.
+**Tag**: `#creative-expression`
 
 ---
 
-## 🏗️ Technical Architecture
+## 🎨 Vision & What the App Does
 
-ComicNova is architected on a fully serverless stack, optimizing for high scalability, rapid deployment, and minimal cost within the AWS Free Tier.
+Visual storytelling is one of the most powerful forms of creative expression, but turning a story idea into an illustrated comic book usually requires specialized drawing skills, graphic layout design, and narrative scripting experience. 
+
+**ComicNova** is a serverless web application that empowers anyone to turn a single text idea into a custom 3-panel visual comic strip in seconds. 
+
+By entering a premise (such as *"A tiny brave mouse finds a glowing magical golden cheese in a dark castle basement"*), **ComicNova** generates:
+- **Custom Comic Title**: A catchy, thematic title for the comic strip.
+- **3-Panel Script**: Concise narrative context for each panel along with character dialogues.
+- **Custom Illustrations**: Visual art generated in the user's selected style (e.g., *Superhero Comic*, *Chibi Anime*, *Neon Cyberpunk*, *Watercolor*, *Retro Pixel Art*, or *3D Claymation*).
+- **Interactive Comic Reader**: Renders the complete story inside a retro-paper comic page complete with thick panel borders, vintage cream narration blocks, and speech bubbles.
+- **Public Gallery**: Enables users to save their creations to a shared community showcase powered by Amazon DynamoDB and Amazon S3.
+
+---
+
+## 🛠️ How You Built It
+
+We built **ComicNova** using a modern serverless stack designed for responsiveness, high visual fidelity, and seamless operation within the AWS Free Tier.
+
+### Development Process & Key Decisions
+1. **Frontend Architecture**: Built a Single Page Application (SPA) using **Vite + React** with a modern dark theme, glassmorphic control panels, and interactive step-by-step progress tracking loaders.
+2. **Serverless API Layer**: Utilized **AWS Lambda** with Python 3.13 and **Lambda Function URLs**. Using a Function URL provided a direct, low-latency HTTPS endpoint with built-in CORS handling without the added complexity of API Gateway.
+3. **Generative AI Engine**: Integrated **Amazon Bedrock**:
+   - **Amazon Nova Lite (`amazon.nova-lite-v1:0`)** via the Bedrock Converse API to convert user premises into clean, structured JSON comic scripts.
+   - **Amazon Nova Canvas (`amazon.nova-canvas-v1:0`)** via `invoke_model` to generate high-resolution panel illustrations.
+
+---
+
+## 🌩️ AWS Services Used & Architecture Overview
 
 ```
-[ React/Vite SPA ] (http://localhost:5173)
-       │
-       ▼ (HTTPS POST / Fetch)
-[ AWS Lambda Function URL ] (CORS enabled)
-       │
-       ├───► [ Amazon Bedrock (Nova Lite & Canvas) ] (Text & Image AI Generation)
-       ├───► [ Amazon S3 Bucket ] (Stores generated panel illustrations)
-       └───► [ Amazon DynamoDB Table ] (Saves comic metadata & public gallery)
+                        +---------------------------------------+
+                        |  React / Vite Single Page Application |
+                        |        (http://localhost:5173)        |
+                        +---------------------------------------+
+                                            |
+                                            | (HTTPS POST / Fetch)
+                                            v
+                        +---------------------------------------+
+                        |        AWS Lambda Function URL        |
+                        |             (CORS Enabled)            |
+                        +---------------------------------------+
+                                            |
+                  +-------------------------+-------------------------+
+                  |                         |                         |
+                  v                         v                         v
+       +--------------------+    +--------------------+    +--------------------+
+       |   Amazon Bedrock   |    |     Amazon S3      |    |  Amazon DynamoDB   |
+       |  (Nova Lite &      |    |  (Image Asset      |    |  (Public Gallery   |
+       |   Nova Canvas)     |    |   Hosting Bucket)  |    |   NoSQL Table)     |
+       +--------------------+    +--------------------+    +--------------------+
 ```
 
-1. **Frontend**: A Single Page Application (SPA) built using **Vite + React** and custom CSS. It features a modern HSL-based dark mode theme with glassmorphism effects, progress tracking loaders, and a high-fidelity "retro paper" comic book reader styling.
-2. **Backend**: A single **AWS Lambda** function running **Python 3.13**, exposed via a public, CORS-configured **Lambda Function URL**. This acts as a lightweight HTTP API, eliminating the need for an API Gateway.
-3. **AI Core (Amazon Bedrock)**:
-   - **Amazon Nova Lite (`amazon.nova-lite-v1:0`)**: Used via the Converse API to take the user's premise and generate a structured JSON comic script (title, narration, dialogues, and descriptive image prompts).
-   - **Amazon Nova Canvas (`amazon.nova-canvas-v1:0`)**: Used via the `invoke_model` API to generate high-resolution 512x512 panel illustrations based on the script prompts and selected art style.
-4. **Asset Hosting (Amazon S3)**: Generated image bytes are uploaded to a public S3 bucket with CORS configuration, returning pre-signed URLs or public URLs to render panels on the frontend.
-5. **Database (Amazon DynamoDB)**: A DynamoDB Table stores metadata of saved comics, enabling a dynamic, real-time "Public Gallery" page.
+### AWS Services Breakdown:
+- **AWS Lambda**: Executes core backend API actions (`generate_story`, `generate_image`, `save_comic`, `list_comics`).
+- **Lambda Function URL**: Provides a secure public HTTPS endpoint configured with cross-origin resource sharing (CORS).
+- **Amazon Bedrock**: Powering narrative creation with Amazon Nova Lite and visual artwork with Amazon Nova Canvas.
+- **Amazon S3**: Hosts generated PNG panel illustrations with pre-signed URL capabilities for secure browser rendering.
+- **Amazon DynamoDB**: A `SimpleTable` storing comic metadata, prompt details, panel structure, and creation timestamps for the public gallery.
+- **AWS SAM (Serverless Application Model)**: Infrastructure-as-code tool used to define, build, and deploy the entire backend stack non-interactively.
 
 ---
 
-## 🛠️ Overcoming Engineering Challenges
+## 🔧 Engineering Challenges Encountered & Overcome
 
-During development, we encountered and solved several critical AWS integration challenges:
+Building an end-to-end serverless AI application involved solving four major technical hurdles:
 
-### 1. CloudFormation Early Validation Hook Error
-During backend deployment, CloudFormation rejected our `AllowMethods` configuration under `FunctionUrlConfig`:
-* **Problem**: `OPTIONS` was provided in the methods list, failing validation since CloudFormation's property validation schema only supports `[GET, PUT, HEAD, POST, PATCH, DELETE, *]`.
-* **Solution**: We replaced the specific methods list with a single wildcard `*`, which safely allows preflight `OPTIONS` and standard `POST`/`GET` requests.
+### 1. CloudFormation Early Validation CORS Enum Error
+* **Challenge**: When deploying our `template.yaml`, CloudFormation rejected `Cors.AllowMethods` because `OPTIONS` was included in the array. CloudFormation property validation strictly limits values to `[GET, PUT, HEAD, POST, PATCH, DELETE, *]`.
+* **Solution**: We updated `template.yaml` to specify the wildcard `*` under `AllowMethods`, satisfying CloudFormation validation while permitting preflight `OPTIONS` requests.
 
-### 2. Duplicate CORS Headers (CORS Collision)
-Our first browser test failed with `TypeError: Failed to fetch`.
-* **Problem**: In the Python code, we were manually appending standard CORS headers (`Access-Control-Allow-Origin: *`). However, the Lambda Function URL gateway layer was also configured to inject CORS headers based on our SAM template. This resulted in duplicate CORS headers in the HTTP response, which modern browsers reject.
-* **Solution**: We removed the manual CORS header responses from the Python `respond()` helper, allowing the Lambda Function URL gateway layer to handle and inject CORS headers cleanly.
+### 2. Duplicate CORS Headers Collision
+* **Challenge**: Browser requests failed with `TypeError: Failed to fetch` during initial testing.
+* **Solution**: We discovered that both the AWS Lambda Function URL gateway layer AND our Python code were returning `Access-Control-Allow-Origin: *`. Browsers block requests when duplicate CORS headers exist. We stripped manual CORS headers from Python response helpers and allowed the Lambda Function URL gateway to handle header injection automatically.
 
-### 3. Boto3 DynamoDB Decimal Serialization Error
-When attempting to retrieve the public gallery, the API crashed with `TypeError: Object of type Decimal is not JSON serializable`.
-* **Problem**: Boto3's DynamoDB serializer automatically converts all numeric values (like our `panel_number`) into Python `Decimal` objects. The standard `json.dumps` library does not know how to serialize `Decimal` types.
-* **Solution**: We implemented a custom `DecimalEncoder` class in our Lambda code to convert Decimal values to integers or floats during JSON serialization:
+### 3. Boto3 DynamoDB Decimal JSON Serialization
+* **Challenge**: When querying `list_comics`, the API threw `TypeError: Object of type Decimal is not JSON serializable`. Boto3 automatically parses DynamoDB numeric fields (like `panel_number`) into `decimal.Decimal` objects, which standard Python `json.dumps()` cannot serialize.
+* **Solution**: We created a custom `DecimalEncoder` class in Python:
   ```python
   class DecimalEncoder(json.JSONEncoder):
       def default(self, o):
@@ -65,56 +90,30 @@ When attempting to retrieve the public gallery, the API crashed with `TypeError:
           return super(DecimalEncoder, self).default(o)
   ```
 
-### 4. Entitlement & Model Authorization Holds
-AWS accounts, especially new ones, occasionally face model entitlement holds, returning `ValidationException: Operation not allowed` when calling Bedrock Converse.
-* **Problem**: Preventing the app from loading or functioning if Bedrock access is restricted.
-* **Solution**: We engineered a robust, local fallback framework. If Bedrock Converse or Canvas fails, the backend triggers local generators:
-  - *Text Fallback*: Dynamically formats a beautiful 3-panel script using templates.
-  - *Image Fallback*: Generates and returns a custom, base64-encoded SVG panel containing stylized vector shapes and text descriptions matching the chosen style.
-  This ensures the app remains fully functional, responsive, and testable regardless of AWS Bedrock console permissions.
+### 4. Resilient Architecture via Fallback Generators
+* **Challenge**: In accounts where Bedrock Nova model access or authorization is pending, direct calls return `ValidationException: Operation not allowed`.
+* **Solution**: We engineered a smart local fallback system. If Bedrock API calls encounter account restrictions:
+  - *Text Engine*: Constructs a structured 3-panel script locally.
+  - *Visual Engine*: Generates dynamic, custom vector SVG graphics encoded in base64 containing the scene details and selected style.
+  This ensures the application remains 100% testable, interactive, and functional on any AWS account.
 
 ---
 
-## 🚀 How to Run the Project
+## 💡 What You Learned
 
-### Prerequisites
-- Node.js & npm installed
-- AWS CLI & AWS SAM CLI configured with access credentials
-
-### Backend Deployment
-1. Navigate to the backend:
-   ```bash
-   cd aws-app/backend
-   ```
-2. Build the serverless resources:
-   ```bash
-   sam build
-   ```
-3. Deploy to AWS:
-   ```bash
-   sam deploy
-   ```
-4. Copy the `BackendFunctionUrl` from the CloudFormation Outputs.
-
-### Frontend Setup
-1. Navigate to the frontend:
-   ```bash
-   cd ../frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Open `src/App.jsx` and replace `BACKEND_URL` with your copied `BackendFunctionUrl`.
-4. Launch the local dev server:
-   ```bash
-   npm run dev
-   ```
+Participating in this challenge provided deep technical insights into:
+1. **Amazon Bedrock Prompt Engineering**: Crafting strict JSON output prompts to guarantee consistent API contracts between generative models and frontend user interfaces.
+2. **Lambda Function URL Architecture**: Understanding the boundary between gateway-managed CORS configuration and application-level headers.
+3. **Resilient Serverless Patterns**: Designing fallback paths for generative AI APIs so application UX remains seamless even during downstream rate limits or account holds.
+4. **DynamoDB Data Transformation**: Managing type conversions between NoSQL Boto3 types and JSON REST payloads efficiently.
 
 ---
 
-## 🏁 Conclusion
+## 🔗 Link to App & Public Repository
 
-By using AWS Serverless features (Lambda, DynamoDB, S3) and Amazon Bedrock, we built a fully featured, scalable, and responsive creative app. Overcoming early validation and serialization issues provided valuable serverless learnings, demonstrating the absolute importance of proper CORS header scoping and custom type encoding when working with AWS SDKs. 
+* **Public GitHub Repository**: [https://github.com/Hashim-Virk/Comic-Nova](https://github.com/Hashim-Virk/Comic-Nova)
+* **Live Serverless API Endpoint**: `https://svncvdmdeipl5n3ai3xsdhekdq0zhdxd.lambda-url.us-east-1.on.aws/`
 
-Enjoy creating your visual stories with **ComicNova**! 🔮🎨
+---
+
+*Built with ❤️ for the AWS Build a Creative App Weekend Challenge!*
