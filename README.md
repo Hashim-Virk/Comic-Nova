@@ -2,7 +2,7 @@
 
 Welcome to **ComicNova**, a serverless web application that turns any creative story idea into a custom 3-panel visual comic strip! Built for the AWS Build a Creative App Weekend Challenge, this project demonstrates how to combine AWS serverless features—including AWS Lambda, Amazon Bedrock, Amazon S3, and Amazon DynamoDB—to build high-performance creative applications.
 
----
+----
 
 ## 💡 Features & Highlights
 
